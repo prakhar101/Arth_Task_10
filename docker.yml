@@ -1,0 +1,82 @@
+- hosts : all
+  vars_files :
+          - var.yml
+  tasks:
+
+  - name : creating-a-folder-for-dvd
+    file :
+            path : "{{ dvd }}"
+            state : directory
+
+  - name : mounting-the-dvd
+    mount :
+            path : "{{ dvd }}"
+            src : "/dev/sr0"
+            fstype : iso9660
+            state : present
+
+  - name : configuring-the-yum(AppStream)
+    yum_repository :
+            name : "AppStream"
+            description : "yum repo for AppStream"
+            baseurl : "{{ dvd }}/AppStream/"
+            gpgcheck : no
+            enabled : yes
+            
+  - name : configuring-the-yum(BaseOS)
+    yum_repository:
+            name : "BaseOS"
+            description : "yum repo for BaseOS"
+            baseurl : "{{ dvd }}/BaseOS/"
+            gpgcheck : no
+            enabled : yes
+
+  - name : creating-repo-for-docker
+    yum_repository :
+            name : docker
+            description : "repo of docker"
+            baseurl : "https://download.docker.com/linux/centos/7/x86_64/stable/"
+            gpgcheck : no
+            enabled : yes
+
+  - name : intalling-docker
+    command : "yum install docker-ce --nobest -y"
+
+
+  - name : checking-for-python-to-be-present
+    package :
+            name : "python3"
+            state : present
+  - name : installing-some-essential-libraries-of-python-for-pulling-docker-image
+    pip :
+            name : "docker-py"
+  
+  - name : staring-docker-engine
+    service :
+            name : "docker"
+            state : started
+  - name : pulling-docker-image
+    docker_image:
+            name : "httpd"
+            source : pull
+  - name : creating-workspace-for-we-pages
+    file :
+            path : "/docker_web_server"
+            state : directory
+      
+  - name : launching-docker-container
+    docker_container:
+            name : "container"
+            image : "httpd:latest"
+            state : started
+            interactive : yes
+            ports : "8080:80"
+            volumes : "/docker_web_server:/usr/local/apache2/htdocs"
+
+  - name : uploading-web-pages
+    copy :
+             dest : "/docker_web_server/index.html"
+             content : " Web Sever has been Successfully Established!!!\n"
+
+
+
